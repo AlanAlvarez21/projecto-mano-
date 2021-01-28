@@ -1,19 +1,26 @@
 #include <PIDController.h>
+#include <EEPROM.h>
+
 volatile long int encoder_pos =0 ,encoder_pos1 = 0;
 PIDController pos_pid; 
 PIDController pos1_pid; 
 int motor_value = 255;
-
-int lastpost,lastpost1;
+#define EEPROM_SIZE 1
+int lastpost=0,lastpost1=0;
 unsigned int integerValue=0;  // Max value is 65535
 char incomingByte;
 void setup() {
+Serial.begin(9600);
 
-  Serial.begin(9600);
+   
+ leer();
+  // EEPROM.begin(EEPROM_SIZE);
+  
+  
   pinMode(2, INPUT);// c1 m1
   pinMode(3, INPUT);//c2 m2
-   pinMode(4, INPUT);//
-  pinMode(5, INPUT);
+   pinMode(4, INPUT);// posicion
+  pinMode(5, INPUT);//  posicion
   pinMode(9, OUTPUT);
   pinMode(10, OUTPUT);
    pinMode(11, OUTPUT);
@@ -32,10 +39,10 @@ void loop() {
 
 if (Serial.available() > 0) {  
     integerValue = 0; 
-encoder_pos=lastpost;
-encoder_pos1=lastpost1;
-           
+    
+
     while(1) {           
+     
       incomingByte = Serial.read();
       if (incomingByte == '\n') break;   
       if (incomingByte == -1) continue;  
@@ -43,7 +50,7 @@ encoder_pos1=lastpost1;
       integerValue = ((incomingByte - 48) + integerValue);
       pos_pid.setpoint(integerValue);
       pos1_pid.setpoint(integerValue);
-      
+           
     }
 }
 
@@ -59,6 +66,12 @@ if(motor_value > 0){
 }else{
   MotorClockwise1(abs(motor_value));
 }
+
+
+
+   EEPROM.write(0,encoder_pos);
+   
+   EEPROM.write(1,encoder_pos1);
   Serial.println((String)encoder_pos+","+(String)encoder_pos1);
 //   Serial.println(",");
   // Serial.println(encoder_pos1);
@@ -66,7 +79,17 @@ if(motor_value > 0){
 
  
 }
-
+void epromsisa()
+  {
+   EEPROM.write(0,encoder_pos);
+   
+   EEPROM.write(1,encoder_pos1);
+  }
+void leer()
+{
+      pos_pid.setpoint(EEPROM.read(0));
+      pos1_pid.setpoint(EEPROM.read(1));
+}
 void encoder1(){
 
   if(digitalRead(5) == HIGH){
@@ -74,7 +97,7 @@ void encoder1(){
   }else{
     encoder_pos1--;
   }
-   lastpost1=encoder_pos1;
+ 
 }
 
 void encoder(){
@@ -84,8 +107,6 @@ void encoder(){
   }else{
     encoder_pos--;
   }
-   
-  lastpost=encoder_pos;
 }
 
 void MotorClockwise(int power){
